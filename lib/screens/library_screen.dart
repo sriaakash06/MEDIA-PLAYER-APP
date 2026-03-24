@@ -88,7 +88,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'VibePlayer',
+                              'Tunify',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 28,

@@ -88,7 +88,6 @@ class PlayerScreen extends StatelessWidget {
                       child: song == null
                           ? _noSongArt()
                           : Container(
-                              key: ValueKey(song.id),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
@@ -120,7 +119,7 @@ class PlayerScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
+                                  duration: const Duration(milliseconds: 100),
                                   child: Text(
                                     song?.title ?? 'No Song Selected',
                                     key: ValueKey(song?.id),

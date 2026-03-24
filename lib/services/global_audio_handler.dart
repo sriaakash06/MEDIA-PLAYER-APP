@@ -108,7 +108,7 @@ class GlobalAudioHandler extends BaseAudioHandler {
     
     if (song.data != null) {
       _broadcastMediaItem(song);
-      await _player.play(DeviceFileSource(song.data!));
+      _player.play(DeviceFileSource(song.data!));
     }
   }
 

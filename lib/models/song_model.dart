@@ -1,5 +1,7 @@
 import 'package:on_audio_query/on_audio_query.dart';
 
+enum PlayerRepeatMode { none, all, one }
+
 class Song {
   final int id;
   final String title;

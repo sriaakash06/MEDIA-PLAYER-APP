@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/audio_provider.dart';
 import '../widgets/album_art_widget.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 class PlayerScreen extends StatelessWidget {
@@ -76,6 +77,7 @@ class PlayerScreen extends StatelessWidget {
                       child: song == null
                           ? _noSongArt()
                           : Container(
+                              key: ValueKey(song.id),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
@@ -307,9 +309,7 @@ class PlayerScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12)),
                             onSelected: (value) {
                               if (value == 'sleep') {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Sleep Timer added!')));
+                                _showSleepTimerDialog(context, audio);
                               } else if (value == 'playlist') {
                                 if (song != null) {
                                   _showAddToPlaylistDialog(context, audio, song);
@@ -368,67 +368,47 @@ class PlayerScreen extends StatelessWidget {
     );
   }
 
+  void _showSleepTimerDialog(BuildContext context, AudioProvider audio) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1240),
+        title: const Text('Sleep Timer', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (audio.isSleepTimerActive)
+              ListTile(
+                title: Text('Active: ${audio.remainingSleepTime?.inMinutes}:${(audio.remainingSleepTime?.inSeconds.remainder(60)).toString().padLeft(2, '0')}',
+                    style: const TextStyle(color: Color(0xFF7C4DFF))),
+                trailing: TextButton(
+                  onPressed: () {
+                    audio.cancelSleepTimer();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ...[15, 30, 45, 60].map((mins) => ListTile(
+                  title: Text('$mins Minutes', style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    audio.setSleepTimer(Duration(minutes: mins));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Sleep Timer set for $mins minutes')));
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAddToPlaylistDialog(BuildContext context, AudioProvider audio, dynamic song) {
     if (song == null) return;
     showDialog(
       context: context,
-      builder: (ctx) {
-        final TextEditingController controller = TextEditingController();
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1A1240),
-          title: const Text('Add to Playlist', style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (audio.customPlaylists.isNotEmpty)
-                ...audio.customPlaylists.keys.map((name) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
-                  title: Text(name, style: const TextStyle(color: Colors.white)),
-                  onTap: () {
-                    audio.addToPlaylist(name, song);
-                    Navigator.pop(ctx);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
-                    }
-                  },
-                )),
-              if (audio.customPlaylists.isNotEmpty)
-                const Divider(color: Colors.white24),
-              TextField(
-                controller: controller,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'New Playlist Name',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF7C4DFF))),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
-            TextButton(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isNotEmpty) {
-                  audio.createPlaylist(name);
-                  audio.addToPlaylist(name, song);
-                  Navigator.pop(ctx);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Created and added to $name')));
-                  }
-                }
-              },
-              child: const Text('Create & Add', style: TextStyle(color: Color(0xFF7C4DFF))),
-            ),
-          ],
-        );
-      }
+      builder: (ctx) => _PlaylistDialog(audio: audio, song: song),
     );
   }
 
@@ -537,6 +517,90 @@ class _RepeatIcon extends StatelessWidget {
       icon: Icon(icon,
           color: active ? const Color(0xFF7C4DFF) : Colors.white38,
           size: 26),
+    );
+  }
+}
+
+class _PlaylistDialog extends StatefulWidget {
+  final AudioProvider audio;
+  final dynamic song;
+  const _PlaylistDialog({required this.audio, required this.song});
+
+  @override
+  State<_PlaylistDialog> createState() => _PlaylistDialogState();
+}
+
+class _PlaylistDialogState extends State<_PlaylistDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AudioProvider>(
+      builder: (context, audio, _) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1240),
+          title: const Text('Add to Playlist', style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (audio.customPlaylists.isNotEmpty)
+                  ...audio.customPlaylists.keys.map((name) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
+                    title: Text(name, style: const TextStyle(color: Colors.white)),
+                    onTap: () {
+                      audio.addToPlaylist(name, widget.song);
+                      Navigator.pop(context);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
+                      }
+                    },
+                  )),
+                if (audio.customPlaylists.isNotEmpty)
+                  const Divider(color: Colors.white24),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'New Playlist Name',
+                    hintStyle: TextStyle(color: Colors.white38),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF7C4DFF))),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              onPressed: () {
+                final name = _controller.text.trim();
+                if (name.isNotEmpty) {
+                  audio.createPlaylist(name);
+                  audio.addToPlaylist(name, widget.song);
+                  Navigator.pop(context);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Created and added to $name')));
+                  }
+                }
+              },
+              child: const Text('Create & Add', style: TextStyle(color: Color(0xFF7C4DFF))),
+            ),
+          ],
+        );
+      },
     );
   }
 }

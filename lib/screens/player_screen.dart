@@ -73,34 +73,26 @@ class PlayerScreen extends StatelessWidget {
                     // ── Album Art ──────────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 36),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        transitionBuilder: (child, anim) => ScaleTransition(
-                          scale: anim,
-                          child: FadeTransition(opacity: anim, child: child),
-                        ),
-                        child: song == null
-                            ? _noSongArt()
-                            : Container(
-                                key: ValueKey(song.id),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(28),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF7C4DFF)
-                                          .withOpacity(0.35),
-                                      blurRadius: 40,
-                                      offset: const Offset(0, 15),
-                                    ),
-                                  ],
-                                ),
-                                child: AlbumArtWidget(
-                                  songId: song.id,
-                                  size: 280,
-                                  borderRadius: 28,
-                                ),
+                      child: song == null
+                          ? _noSongArt()
+                          : Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(28),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF7C4DFF)
+                                        .withOpacity(0.35),
+                                    blurRadius: 40,
+                                    offset: const Offset(0, 15),
+                                  ),
+                                ],
                               ),
-                      ),
+                              child: AlbumArtWidget(
+                                songId: song.id,
+                                size: 280,
+                                borderRadius: 28,
+                              ),
+                            ),
                     ),
 
                     const Spacer(flex: 1),
@@ -319,9 +311,9 @@ class PlayerScreen extends StatelessWidget {
                                     const SnackBar(
                                         content: Text('Sleep Timer added!')));
                               } else if (value == 'playlist') {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Add to Playlist clicked')));
+                                if (song != null) {
+                                  _showAddToPlaylistDialog(context, audio, song);
+                                }
                               }
                             },
                             itemBuilder: (context) => [
@@ -376,6 +368,70 @@ class PlayerScreen extends StatelessWidget {
     );
   }
 
+  void _showAddToPlaylistDialog(BuildContext context, AudioProvider audio, dynamic song) {
+    if (song == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final TextEditingController controller = TextEditingController();
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1240),
+          title: const Text('Add to Playlist', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (audio.customPlaylists.isNotEmpty)
+                ...audio.customPlaylists.keys.map((name) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.queue_music_rounded, color: Colors.white70),
+                  title: Text(name, style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    audio.addToPlaylist(name, song);
+                    Navigator.pop(ctx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
+                    }
+                  },
+                )),
+              if (audio.customPlaylists.isNotEmpty)
+                const Divider(color: Colors.white24),
+              TextField(
+                controller: controller,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'New Playlist Name',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF7C4DFF))),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  audio.createPlaylist(name);
+                  audio.addToPlaylist(name, song);
+                  Navigator.pop(ctx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Created and added to $name')));
+                  }
+                }
+              },
+              child: const Text('Create & Add', style: TextStyle(color: Color(0xFF7C4DFF))),
+            ),
+          ],
+        );
+      }
+    );
+  }
+
   void _handleDelete(BuildContext context, AudioProvider audio, dynamic song) {
     if (song == null || song.data == null) return;
     showDialog(
@@ -383,7 +439,7 @@ class PlayerScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1240),
         title: const Text('Delete Song', style: TextStyle(color: Colors.white)),
-        content: Text('Are you sure you want to delete "${song.title}"?',
+        content: Text('Are you sure you want to delete "${song.title}" from device storage?',
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
@@ -393,6 +449,20 @@ class PlayerScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              
+              // Demand exact permission on Android 11+ to delete
+              final status = await Permission.manageExternalStorage.request();
+              if (!status.isGranted) {
+                final storageStatus = await Permission.storage.request();
+                if (!storageStatus.isGranted) {
+                  if (context.mounted) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('Storage permission is required to delete files!')));
+                  }
+                  return;
+                }
+              }
+
               try {
                 final file = File(song.data!);
                 if (await file.exists()) {
@@ -401,12 +471,12 @@ class PlayerScreen extends StatelessWidget {
                 audio.removeCurrentSong();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Song deleted successfully')));
+                      const SnackBar(content: Text('Song deleted successfully!')));
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to delete song (Permission denied)')));
+                      const SnackBar(content: Text('Failed: Cannot delete files without OS permission!')));
                 }
               }
             },

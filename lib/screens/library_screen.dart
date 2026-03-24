@@ -5,6 +5,7 @@ import '../models/song_model.dart';
 import '../widgets/album_art_widget.dart';
 import '../widgets/mini_player.dart';
 import 'player_screen.dart';
+import 'collection_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -295,15 +296,112 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ],
                       );
 
+                final artists = audio.artists.keys.toList()..sort();
+                final albums = audio.albums.keys.toList()..sort();
+
+                final listsTab = ListView(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFFFF5252)]),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+                      ),
+                      title: const Text('Favorites', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      subtitle: Text('${audio.favoriteSongs.length} songs', style: const TextStyle(color: Colors.white54)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => CollectionScreen(title: 'Favorites', songs: audio.favoriteSongs),
+                        ));
+                      },
+                    ),
+                    if (audio.customPlaylists.isNotEmpty)
+                      const Divider(color: Colors.white12, height: 1),
+                    ...audio.customPlaylists.keys.map((name) {
+                      final pSongs = audio.customPlaylists[name]!;
+                      return ListTile(
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C1F6E),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.queue_music_rounded, color: Colors.white70, size: 26),
+                        ),
+                        title: Text(name, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        subtitle: Text('${pSongs.length} songs', style: const TextStyle(color: Colors.white54)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => CollectionScreen(title: name, songs: pSongs),
+                          ));
+                        },
+                      );
+                    }),
+                  ],
+                );
+
+                final artistsTab = ListView.builder(
+                  itemCount: artists.length,
+                  itemBuilder: (context, index) {
+                    final artistName = artists[index];
+                    final artistSongs = audio.artists[artistName]!;
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0xFF2C1F6E),
+                        child: Icon(Icons.person_rounded, color: Colors.white70),
+                      ),
+                      title: Text(artistName, style: const TextStyle(color: Colors.white)),
+                      subtitle: Text('${artistSongs.length} songs', style: const TextStyle(color: Colors.white54)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => CollectionScreen(title: artistName, songs: artistSongs),
+                        ));
+                      },
+                    );
+                  },
+                );
+
+                final albumsTab = ListView.builder(
+                  itemCount: albums.length,
+                  itemBuilder: (context, index) {
+                    final albumName = albums[index];
+                    final albumSongs = audio.albums[albumName]!;
+                    return ListTile(
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2C1F6E),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.album_rounded, color: Colors.white70),
+                      ),
+                      title: Text(albumName, style: const TextStyle(color: Colors.white)),
+                      subtitle: Text('${albumSongs.length} songs', style: const TextStyle(color: Colors.white54)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => CollectionScreen(title: albumName, songs: albumSongs),
+                        ));
+                      },
+                    );
+                  },
+                );
+
                 return TabBarView(
                   children: [
                     songsTab,
-                    // Lists Tab Placeholder
-                    const Center(child: Text("Playlists coming in next update", style: TextStyle(color: Colors.white54))),
-                    // Artists Tab Placeholder
-                    const Center(child: Text("Artists coming in next update", style: TextStyle(color: Colors.white54))),
-                    // Albums Tab Placeholder
-                    const Center(child: Text("Albums coming in next update", style: TextStyle(color: Colors.white54))),
+                    listsTab,
+                    artistsTab,
+                    albumsTab,
                   ],
                 );
               },

@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audio_session/audio_session.dart';
 import '../models/song_model.dart';
 
 enum PlayerRepeatMode { none, all, one }
@@ -14,6 +15,7 @@ class AudioProvider extends ChangeNotifier {
   List<Song> _queue = [];
   List<int> _shuffledIndices = [];
   Set<int> _favorites = {};
+  Map<String, List<Song>> _customPlaylists = {};
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
@@ -42,6 +44,34 @@ class AudioProvider extends ChangeNotifier {
     _audioPlayer.onPlayerComplete.listen((event) {
       _onTrackComplete();
     });
+
+    _initAudioSession();
+  }
+
+  Future<void> _initAudioSession() async {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.music());
+    session.interruptionEventStream.listen((event) {
+      if (event.begin) {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            break;
+          case AudioInterruptionType.pause:
+          case AudioInterruptionType.unknown:
+            _audioPlayer.pause();
+            break;
+        }
+      } else {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            break;
+          case AudioInterruptionType.pause:
+          case AudioInterruptionType.unknown:
+            if (_isPlaying) _audioPlayer.resume();
+            break;
+        }
+      }
+    });
   }
 
   // ─── Getters ─────────────────────────────────────────────────────────────
@@ -59,6 +89,25 @@ class AudioProvider extends ChangeNotifier {
   Song? get currentSong =>
       (_currentIndex != -1 && _queue.isNotEmpty) ? _queue[_currentIndex] : null;
 
+  List<Song> get favoriteSongs => _songs.where((s) => _favorites.contains(s.id)).toList();
+  Map<String, List<Song>> get customPlaylists => _customPlaylists;
+
+  Map<String, List<Song>> get artists {
+    final map = <String, List<Song>>{};
+    for (var s in _songs) {
+      map.putIfAbsent(s.artist, () => []).add(s);
+    }
+    return map;
+  }
+
+  Map<String, List<Song>> get albums {
+    final map = <String, List<Song>>{};
+    for (var s in _songs) {
+      map.putIfAbsent(s.album, () => []).add(s);
+    }
+    return map;
+  }
+
   bool isFavorite(int? id) => id != null && _favorites.contains(id);
 
   void toggleFavorite(int id) {
@@ -68,6 +117,22 @@ class AudioProvider extends ChangeNotifier {
       _favorites.add(id);
     }
     notifyListeners();
+  }
+
+  void createPlaylist(String name) {
+    if (!_customPlaylists.containsKey(name)) {
+      _customPlaylists[name] = [];
+      notifyListeners();
+    }
+  }
+
+  void addToPlaylist(String name, Song song) {
+    if (_customPlaylists.containsKey(name)) {
+      if (!_customPlaylists[name]!.any((s) => s.id == song.id)) {
+        _customPlaylists[name]!.add(song);
+        notifyListeners();
+      }
+    }
   }
 
   void removeCurrentSong() {

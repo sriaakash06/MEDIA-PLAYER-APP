@@ -58,10 +58,10 @@ class AudioProvider extends ChangeNotifier {
   }
   
   bool get isPlaying => globalHandler?.player.state == PlayerState.playing;
-  Duration get duration => globalHandler?.player.duration ?? Duration.zero;
-  Duration get position => globalHandler?.player.position ?? Duration.zero;
+  Duration get duration => globalHandler?.currentDuration ?? Duration.zero;
+  Duration get position => globalHandler?.currentPosition ?? Duration.zero;
   bool get isShuffled => globalHandler?.isShuffled ?? false;
-  PlayerRepeatMode get repeatMode => globalHandler?.repeatMode ?? PlayerRepeatMode.none;
+  AudioServiceRepeatMode get repeatMode => globalHandler?.repeatMode ?? AudioServiceRepeatMode.none;
   
   Duration? get remainingSleepTime => _remainingSleepTime;
   bool get isSleepTimerActive => _sleepTimer != null;
@@ -112,8 +112,10 @@ class AudioProvider extends ChangeNotifier {
   void toggleRepeatMode() {
     final h = globalHandler;
     if (h == null) return;
-    final modes = PlayerRepeatMode.values;
-    final next = modes[(h.repeatMode.index + 1) % modes.length];
+    final modes = [AudioServiceRepeatMode.none, AudioServiceRepeatMode.all, AudioServiceRepeatMode.one];
+    int currentIndex = modes.indexOf(h.repeatMode);
+    if (currentIndex == -1) currentIndex = 0;
+    final next = modes[(currentIndex + 1) % modes.length];
     h.setRepeatMode(next);
     notifyListeners();
   }
@@ -151,7 +153,7 @@ class AudioProvider extends ChangeNotifier {
         ignoreCase: true,
       );
 
-      _songs = models.map((m) => Song.fromMap(m.getMap)).toList();
+      _songs = models.map((m) => Song.fromSongModel(m)).toList();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -247,5 +249,14 @@ class AudioProvider extends ChangeNotifier {
       s.title.toLowerCase().contains(q) || 
       s.artist.toLowerCase().contains(q) ||
       s.album.toLowerCase().contains(q)).toList();
+  }
+
+  void removeCurrentSong() {
+    final s = currentSong;
+    if (s != null) {
+      _songs.removeWhere((x) => x.id == s.id);
+      globalHandler?.setQueue(_songs);
+      notifyListeners();
+    }
   }
 }

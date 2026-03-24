@@ -1,0 +1,39 @@
+Running Gradle task 'assembleDebug'...                          
+lib/services/global_audio_handler.dart:124:8: Error: The return type of the method 'GlobalAudioHandler.setRepeatMode' is 'void', which does not match the return type, 'Future<void>', of the overridden method, 'BaseAudioHandler.setRepeatMode'.
+ - 'Future' is from 'dart:async'.
+Change to a subtype of 'Future<void>'.
+  void setRepeatMode(PlayerRepeatMode mode) {
+       ^
+/C:/Users/WELCOME/AppData/Local/Pub/Cache/hosted/pub.dev/audio_service-0.18.18/lib/audio_service.dart:3166:16: Context: This is the overridden method ('setRepeatMode').
+  Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {}
+               ^
+lib/services/global_audio_handler.dart:124:39: Error: The parameter 'mode' of the method 'GlobalAudioHandler.setRepeatMode' has type 'PlayerRepeatMode', which does not match the corresponding type, 'AudioServiceRepeatMode', in the overridden method, 'BaseAudioHandler.setRepeatMode'.
+ - 'PlayerRepeatMode' is from 'package:media_player_app/models/song_model.dart' ('lib/models/song_model.dart').
+ - 'AudioServiceRepeatMode' is from 'package:audio_service/audio_service.dart' ('/C:/Users/WELCOME/AppData/Local/Pub/Cache/hosted/pub.dev/audio_service-0.18.18/lib/audio_service.dart').
+Change to a supertype of 'AudioServiceRepeatMode', or, for a covariant parameter, a subtype.
+  void setRepeatMode(PlayerRepeatMode mode) {
+                                      ^
+/C:/Users/WELCOME/AppData/Local/Pub/Cache/hosted/pub.dev/audio_service-0.18.18/lib/audio_service.dart:3166:16: Context: This is the overridden method ('setRepeatMode').
+  Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {}
+               ^
+lib/services/global_audio_handler.dart:189:14: Error: No named parameter with the name 'updateTime'.
+             updateTime: DateTime.now(),
+             ^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 10s
+Running Gradle task 'assembleDebug'...                             10.9s
+Gradle task assembleDebug failed with exit code 1

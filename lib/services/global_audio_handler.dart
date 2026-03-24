@@ -11,7 +11,9 @@ class GlobalAudioHandler extends BaseAudioHandler {
   int _currentIndex = -1;
   bool _isShuffled = false;
   List<int> _shuffledIndices = [];
-  PlayerRepeatMode _repeatMode = PlayerRepeatMode.none;
+  AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
+  Duration currentPosition = Duration.zero;
+  Duration currentDuration = Duration.zero;
 
   // Callbacks for UI sync
   Function(Duration)? onDurationChanged;
@@ -21,6 +23,7 @@ class GlobalAudioHandler extends BaseAudioHandler {
 
   GlobalAudioHandler() {
     _player.onDurationChanged.listen((d) {
+      currentDuration = d;
       if (mediaItem.value != null) {
         mediaItem.add(mediaItem.value!.copyWith(duration: d));
       }
@@ -28,6 +31,7 @@ class GlobalAudioHandler extends BaseAudioHandler {
     });
 
     _player.onPositionChanged.listen((p) {
+      currentPosition = p;
       onPositionChanged?.call(p);
       _broadcastState();
     });
@@ -117,19 +121,21 @@ class GlobalAudioHandler extends BaseAudioHandler {
     }
   }
 
-  void setRepeatMode(PlayerRepeatMode mode) {
+  @override
+  Future<void> setRepeatMode(AudioServiceRepeatMode mode) async {
     _repeatMode = mode;
   }
 
   void _handleTrackComplete() {
     switch (_repeatMode) {
-      case PlayerRepeatMode.one:
+      case AudioServiceRepeatMode.one:
         playAtIndex(_currentIndex);
         break;
-      case PlayerRepeatMode.all:
+      case AudioServiceRepeatMode.all:
+      case AudioServiceRepeatMode.group:
         skipToNext();
         break;
-      case PlayerRepeatMode.none:
+      case AudioServiceRepeatMode.none:
         if (_currentIndex < _queue.length - 1) {
           skipToNext();
         } else {
@@ -173,7 +179,6 @@ class GlobalAudioHandler extends BaseAudioHandler {
       updatePosition: _player.getCurrentPosition() != null ? Duration.zero : Duration.zero, // Dummy, overridden by updatePosition below
       bufferedPosition: Duration.zero,
       speed: 1.0,
-      updateTime: DateTime.now(),
     ).copyWith(
       updatePosition: Duration(milliseconds: 0), // BaseAudioHandler handles the duration calc if updateTime is provided
     ));
@@ -183,7 +188,6 @@ class GlobalAudioHandler extends BaseAudioHandler {
        if (pos != null) {
           playbackState.add(playbackState.value.copyWith(
              updatePosition: pos,
-             updateTime: DateTime.now(),
           ));
        }
     });
@@ -205,5 +209,5 @@ class GlobalAudioHandler extends BaseAudioHandler {
   List<Song> get currentQueue => _queue;
   int get currentIndex => _currentIndex;
   bool get isShuffled => _isShuffled;
-  PlayerRepeatMode get repeatMode => _repeatMode;
+  AudioServiceRepeatMode get repeatMode => _repeatMode;
 }

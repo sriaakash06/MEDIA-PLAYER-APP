@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/audio_provider.dart';
 import '../widgets/album_art_widget.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import '../models/song_model.dart';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({super.key});
@@ -259,7 +262,7 @@ class PlayerScreen extends StatelessWidget {
                           // Repeat
                           _RepeatIcon(
                             mode: audio.repeatMode,
-                            onTap: audio.cycleRepeat,
+                            onTap: audio.toggleRepeatMode,
                           ),
                         ],
                       ),
@@ -496,7 +499,7 @@ class _ControlIcon extends StatelessWidget {
 }
 
 class _RepeatIcon extends StatelessWidget {
-  final PlayerRepeatMode mode;
+  final AudioServiceRepeatMode mode;
   final VoidCallback onTap;
 
   const _RepeatIcon({required this.mode, required this.onTap});
@@ -504,9 +507,9 @@ class _RepeatIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     IconData icon;
-    bool active = mode != PlayerRepeatMode.none;
+    bool active = mode != AudioServiceRepeatMode.none;
 
-    if (mode == PlayerRepeatMode.one) {
+    if (mode == AudioServiceRepeatMode.one) {
       icon = Icons.repeat_one_rounded;
     } else {
       icon = Icons.repeat_rounded;

@@ -97,7 +97,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               ),
                             ),
                             Text(
-                              'Your Music Library',
+                              'Feel the Music 🎧',
                               style: TextStyle(
                                 color: Colors.white38,
                                 fontSize: 13,

@@ -107,8 +107,8 @@ class GlobalAudioHandler extends BaseAudioHandler {
     final song = _queue[_currentIndex];
     
     if (song.data != null) {
-      await _player.play(DeviceFileSource(song.data!));
       _broadcastMediaItem(song);
+      await _player.play(DeviceFileSource(song.data!));
     }
   }
 

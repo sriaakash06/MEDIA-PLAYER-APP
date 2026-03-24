@@ -5,7 +5,7 @@ import '../widgets/album_art_widget.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:io';
 import '../models/song_model.dart';
 
@@ -22,11 +22,19 @@ class PlayerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF080818),
-      body: Consumer<AudioProvider>(
-        builder: (context, audio, _) {
-          final song = audio.currentSong;
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Consumer<AudioProvider>(
+                builder: (context, audio, _) {
+                  final song = audio.currentSong;
 
-          return Stack(
+                  return IntrinsicHeight(
+                    child: Stack(
             children: [
               // Background gradient
               Container(
@@ -346,13 +354,17 @@ class PlayerScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
+    ),
+  ),
+),
     );
   }
 
@@ -372,37 +384,68 @@ class PlayerScreen extends StatelessWidget {
   }
 
   void _showSleepTimerDialog(BuildContext context, AudioProvider audio) {
+    Duration selectedDuration = const Duration(minutes: 15);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1240),
-        title: const Text('Sleep Timer', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (audio.isSleepTimerActive)
-              ListTile(
-                title: Text('Active: ${audio.remainingSleepTime?.inMinutes}:${(audio.remainingSleepTime?.inSeconds.remainder(60)).toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Color(0xFF7C4DFF))),
-                trailing: TextButton(
-                  onPressed: () {
-                    audio.cancelSleepTimer();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Cancel'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1A1240),
+            title: const Text('Sleep Timer', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (audio.isSleepTimerActive)
+                  ListTile(
+                    title: Text('Active: ${audio.remainingSleepTime?.inHours.toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inMinutes.remainder(60)).toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inSeconds.remainder(60)).toString().padLeft(2, '0')}',
+                        style: const TextStyle(color: Color(0xFF7C4DFF))),
+                    trailing: TextButton(
+                      onPressed: () {
+                        audio.cancelSleepTimer();
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                SizedBox(
+                  height: 180,
+                  child: CupertinoTheme(
+                    data: const CupertinoThemeData(
+                      textTheme: CupertinoTextThemeData(
+                        pickerTextStyle: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                    child: CupertinoTimerPicker(
+                      mode: CupertinoTimerPickerMode.hms,
+                      initialTimerDuration: selectedDuration,
+                      onTimerDurationChanged: (Duration newDuration) {
+                        selectedDuration = newDuration;
+                      },
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
               ),
-            ...[15, 30, 45, 60].map((mins) => ListTile(
-                  title: Text('$mins Minutes', style: const TextStyle(color: Colors.white)),
-                  onTap: () {
-                    audio.setSleepTimer(Duration(minutes: mins));
+              TextButton(
+                onPressed: () {
+                  if (selectedDuration.inSeconds > 0) {
+                    audio.setSleepTimer(selectedDuration);
+                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Sleep Timer set for $mins minutes')));
-                  },
-                )),
-          ],
-        ),
+                    messenger.showSnackBar(
+                        SnackBar(content: Text('Sleep Timer set for ${selectedDuration.inHours}h ${selectedDuration.inMinutes.remainder(60)}m ${selectedDuration.inSeconds.remainder(60)}s')));
+                  }
+                },
+                child: const Text('Start', style: TextStyle(color: Color(0xFF7C4DFF))),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
@@ -560,10 +603,9 @@ class _PlaylistDialogState extends State<_PlaylistDialog> {
                     title: Text(name, style: const TextStyle(color: Colors.white)),
                     onTap: () {
                       audio.addToPlaylist(name, widget.song);
+                      final messenger = ScaffoldMessenger.of(context);
                       Navigator.pop(context);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
-                      }
+                      messenger.showSnackBar(SnackBar(content: Text('Added to $name')));
                     },
                   )),
                 if (audio.customPlaylists.isNotEmpty)
@@ -593,10 +635,9 @@ class _PlaylistDialogState extends State<_PlaylistDialog> {
                 if (name.isNotEmpty) {
                   audio.createPlaylist(name);
                   audio.addToPlaylist(name, widget.song);
+                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(context);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Created and added to $name')));
-                  }
+                  messenger.showSnackBar(SnackBar(content: Text('Created and added to $name')));
                 }
               },
               child: const Text('Create & Add', style: TextStyle(color: Color(0xFF7C4DFF))),

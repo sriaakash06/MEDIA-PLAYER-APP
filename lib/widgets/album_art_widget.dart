@@ -23,6 +23,8 @@ class AlbumArtWidget extends StatelessWidget {
         artworkWidth: size,
         artworkHeight: size,
         artworkFit: BoxFit.cover,
+        quality: 50,
+        keepOldArtwork: true,
         artworkBorder: BorderRadius.circular(borderRadius),
         nullArtworkWidget: Container(
           width: size,

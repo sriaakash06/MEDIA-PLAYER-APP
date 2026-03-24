@@ -225,7 +225,7 @@ class AudioProvider extends ChangeNotifier {
           notifyListeners();
         } else {
           _remainingSleepTime = Duration(seconds: _remainingSleepTime!.inSeconds - 1);
-          if (_remainingSleepTime!.inSeconds % 10 == 0) notifyListeners();
+          notifyListeners();
         }
       }
     });

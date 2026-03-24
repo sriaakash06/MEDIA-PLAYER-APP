@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/audio_provider.dart';
-import 'screens/player_screen.dart';
+import 'screens/library_screen.dart';
 
 void main() {
   runApp(
@@ -24,17 +24,16 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: Colors.deepPurpleAccent,
-        scaffoldBackgroundColor: const Color(0xFF0F0F1E),
+        primaryColor: const Color(0xFF7C4DFF),
+        scaffoldBackgroundColor: const Color(0xFF0A0A1A),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurpleAccent,
+          seedColor: const Color(0xFF7C4DFF),
           brightness: Brightness.dark,
-          secondary: Colors.cyanAccent,
         ),
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const PlayerScreen(),
+      home: const LibraryScreen(),
     );
   }
 }

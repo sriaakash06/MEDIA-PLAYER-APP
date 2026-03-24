@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/audio_provider.dart';
 import '../widgets/album_art_widget.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({super.key});
@@ -269,7 +271,86 @@ class PlayerScreen extends StatelessWidget {
                       ),
                     ),
 
-                    const Spacer(flex: 2),
+                    const Spacer(flex: 1),
+
+                    // ── Extra Controls (Fav, Delete, Share, More) ─────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              audio.isFavorite(song?.id)
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: audio.isFavorite(song?.id)
+                                  ? Colors.redAccent
+                                  : Colors.white70,
+                            ),
+                            onPressed: () {
+                              if (song != null) audio.toggleFavorite(song.id);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: Colors.white70),
+                            onPressed: () => _handleDelete(context, audio, song),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.share_outlined,
+                                color: Colors.white70),
+                            onPressed: () {
+                              if (song?.data != null) {
+                                Share.shareXFiles([XFile(song!.data!)],
+                                    text: 'Listen to ${song.title}');
+                              }
+                            },
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert_rounded,
+                                color: Colors.white70),
+                            color: const Color(0xFF2C1F6E),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            onSelected: (value) {
+                              if (value == 'sleep') {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Sleep Timer added!')));
+                              } else if (value == 'playlist') {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Add to Playlist clicked')));
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'sleep',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.timer_outlined, color: Colors.white70),
+                                    SizedBox(width: 12),
+                                    Text('Sleep Timer', style: TextStyle(color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'playlist',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.playlist_add_rounded, color: Colors.white70),
+                                    SizedBox(width: 12),
+                                    Text('Add to Playlist', style: TextStyle(color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -292,6 +373,47 @@ class PlayerScreen extends StatelessWidget {
       ),
       child: const Icon(Icons.music_note_rounded,
           color: Colors.white12, size: 100),
+    );
+  }
+
+  void _handleDelete(BuildContext context, AudioProvider audio, dynamic song) {
+    if (song == null || song.data == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1240),
+        title: const Text('Delete Song', style: TextStyle(color: Colors.white)),
+        content: Text('Are you sure you want to delete "${song.title}"?',
+            style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final file = File(song.data!);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+                audio.removeCurrentSong();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Song deleted successfully')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to delete song (Permission denied)')));
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
     );
   }
 }

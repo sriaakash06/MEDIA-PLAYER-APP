@@ -13,6 +13,7 @@ class AudioProvider extends ChangeNotifier {
   List<Song> _songs = [];
   List<Song> _queue = [];
   List<int> _shuffledIndices = [];
+  Set<int> _favorites = {};
   int _currentIndex = -1;
   bool _isPlaying = false;
   bool _isLoading = false;
@@ -57,6 +58,40 @@ class AudioProvider extends ChangeNotifier {
 
   Song? get currentSong =>
       (_currentIndex != -1 && _queue.isNotEmpty) ? _queue[_currentIndex] : null;
+
+  bool isFavorite(int? id) => id != null && _favorites.contains(id);
+
+  void toggleFavorite(int id) {
+    if (_favorites.contains(id)) {
+      _favorites.remove(id);
+    } else {
+      _favorites.add(id);
+    }
+    notifyListeners();
+  }
+
+  void removeCurrentSong() {
+    if (_currentIndex == -1 || _queue.isEmpty) return;
+    
+    final songToRemove = _queue[_currentIndex];
+    
+    _songs.removeWhere((s) => s.id == songToRemove.id);
+    _queue.removeAt(_currentIndex);
+    
+    if (_queue.isEmpty) {
+      _audioPlayer.stop();
+      _isPlaying = false;
+      _currentIndex = -1;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+    } else {
+      if (_currentIndex >= _queue.length) {
+        _currentIndex = 0;
+      }
+      playSongAt(_currentIndex);
+    }
+    notifyListeners();
+  }
 
   // ─── Device Scan ──────────────────────────────────────────────────────────
   Future<void> loadDeviceSongs() async {

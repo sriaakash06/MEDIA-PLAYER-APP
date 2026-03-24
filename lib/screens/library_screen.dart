@@ -58,8 +58,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1A),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A1A),
       body: Column(
         children: [
           // ── Header ──────────────────────────────────────────────────────
@@ -155,13 +157,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    // Tabs 
+                    TabBar(
+                      isScrollable: true,
+                      indicatorColor: const Color(0xFF7C4DFF),
+                      labelColor: const Color(0xFF7C4DFF),
+                      unselectedLabelColor: Colors.white54,
+                      tabAlignment: TabAlignment.start,
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: 'Songs'),
+                        Tab(text: 'Lists'),
+                        Tab(text: 'Artists'),
+                        Tab(text: 'Albums'),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // ── Songs List ───────────────────────────────────────────────────
+          // ── Tab Contents ───────────────────────────────────────────────────
           Expanded(
             child: Consumer<AudioProvider>(
               builder: (context, audio, _) {
@@ -220,58 +238,72 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ? audio.search(_searchQuery)
                     : audio.songs;
 
-                if (displaySongs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.music_off_rounded,
-                            color: Colors.white24, size: 72),
-                        SizedBox(height: 16),
-                        Text('No songs found',
-                            style: TextStyle(color: Colors.white38, fontSize: 16)),
-                        SizedBox(height: 6),
-                        Text('Add music files to your device',
-                            style: TextStyle(color: Colors.white24, fontSize: 13)),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    // Song count + shuffle all
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
-                      child: Row(
+                final songsTab = displaySongs.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.music_off_rounded,
+                                color: Colors.white24, size: 72),
+                            SizedBox(height: 16),
+                            Text('No songs found',
+                                style: TextStyle(
+                                    color: Colors.white38, fontSize: 16)),
+                            SizedBox(height: 6),
+                            Text('Add music files to your device',
+                                style: TextStyle(
+                                    color: Colors.white24, fontSize: 13)),
+                          ],
+                        ),
+                      )
+                    : Column(
                         children: [
-                          Text(
-                            '${displaySongs.length} Songs',
-                            style: const TextStyle(
-                                color: Colors.white38, fontSize: 13),
+                          // Song count + shuffle all
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '${displaySongs.length} Songs',
+                                  style: const TextStyle(
+                                      color: Colors.white38, fontSize: 13),
+                                ),
+                                const Spacer(),
+                                _ShuffleAllButton(
+                                    songs: displaySongs,
+                                    onPlay: () => _openPlayer(context)),
+                              ],
+                            ),
                           ),
-                          const Spacer(),
-                          _ShuffleAllButton(songs: displaySongs, onPlay: () => _openPlayer(context)),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              itemCount: displaySongs.length,
+                              itemBuilder: (context, index) {
+                                final song = displaySongs[index];
+                                return _SongTile(
+                                  song: song,
+                                  isPlaying: audio.currentSong?.id == song.id,
+                                  onTap: () {
+                                    audio.playFromLibrary(song);
+                                    _openPlayer(context);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
                         ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        itemCount: displaySongs.length,
-                        itemBuilder: (context, index) {
-                          final song = displaySongs[index];
-                          return _SongTile(
-                            song: song,
-                            isPlaying: audio.currentSong?.id == song.id,
-                            onTap: () {
-                              audio.playFromLibrary(song);
-                              _openPlayer(context);
-                            },
-                          );
-                        },
-                      ),
-                    ),
+                      );
+
+                return TabBarView(
+                  children: [
+                    songsTab,
+                    // Lists Tab Placeholder
+                    const Center(child: Text("Playlists coming in next update", style: TextStyle(color: Colors.white54))),
+                    // Artists Tab Placeholder
+                    const Center(child: Text("Artists coming in next update", style: TextStyle(color: Colors.white54))),
+                    // Albums Tab Placeholder
+                    const Center(child: Text("Albums coming in next update", style: TextStyle(color: Colors.white54))),
                   ],
                 );
               },
@@ -282,7 +314,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const MiniPlayer(),
         ],
       ),
-    );
+    ));
   }
 }
 

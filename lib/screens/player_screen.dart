@@ -363,8 +363,9 @@ class PlayerScreen extends StatelessWidget {
         },
       ),
     ),
-  ),
-),
+  );
+},
+      ),
     );
   }
 
@@ -384,68 +385,44 @@ class PlayerScreen extends StatelessWidget {
   }
 
   void _showSleepTimerDialog(BuildContext context, AudioProvider audio) {
-    Duration selectedDuration = const Duration(minutes: 15);
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF1A1240),
-            title: const Text('Sleep Timer', style: TextStyle(color: Colors.white)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (audio.isSleepTimerActive)
-                  ListTile(
-                    title: Text('Active: ${audio.remainingSleepTime?.inHours.toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inMinutes.remainder(60)).toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inSeconds.remainder(60)).toString().padLeft(2, '0')}',
-                        style: const TextStyle(color: Color(0xFF7C4DFF))),
-                    trailing: TextButton(
-                      onPressed: () {
-                        audio.cancelSleepTimer();
-                        Navigator.pop(ctx);
-                      },
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                SizedBox(
-                  height: 180,
-                  child: CupertinoTheme(
-                    data: const CupertinoThemeData(
-                      textTheme: CupertinoTextThemeData(
-                        pickerTextStyle: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                    child: CupertinoTimerPicker(
-                      mode: CupertinoTimerPickerMode.hms,
-                      initialTimerDuration: selectedDuration,
-                      onTimerDurationChanged: (Duration newDuration) {
-                        selectedDuration = newDuration;
-                      },
-                    ),
-                  ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1240),
+        title: const Text('Sleep Timer', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (audio.isSleepTimerActive)
+              ListTile(
+                title: Text('Active: ${audio.remainingSleepTime?.inHours.toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inMinutes.remainder(60)).toString().padLeft(2, '0')}:${(audio.remainingSleepTime?.inSeconds.remainder(60)).toString().padLeft(2, '0')}',
+                    style: const TextStyle(color: Color(0xFF7C4DFF))),
+                trailing: TextButton(
+                  onPressed: () {
+                    audio.cancelSleepTimer();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Cancel'),
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
               ),
-              TextButton(
-                onPressed: () {
-                  if (selectedDuration.inSeconds > 0) {
-                    audio.setSleepTimer(selectedDuration);
+            ...[15, 30, 45, 60].map((mins) => ListTile(
+                  title: Text('$mins Minutes', style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    audio.setSleepTimer(Duration(minutes: mins));
                     final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(ctx);
                     messenger.showSnackBar(
-                        SnackBar(content: Text('Sleep Timer set for ${selectedDuration.inHours}h ${selectedDuration.inMinutes.remainder(60)}m ${selectedDuration.inSeconds.remainder(60)}s')));
-                  }
-                },
-                child: const Text('Start', style: TextStyle(color: Color(0xFF7C4DFF))),
-              ),
-            ],
-          );
-        }
+                        SnackBar(content: Text('Sleep Timer set for $mins minutes')));
+                  },
+                )),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
       ),
     );
   }
